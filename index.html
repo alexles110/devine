@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Devine le prochain mot</title>
+		<style>
+			html, body, input {
+				background-color: #181a1b;
+				color: #e8e6e3;
+				font-family: 'Segoe UI';
+			}
+
+			body {
+				margin: 0;
+				min-height: 100vh;
+			}
+
+			#content {
+				display: flex;
+				justify-content: center;
+				align-items: end;
+				min-height: 50vh;
+			}
+
+			#content > div {
+				margin: 10px 30px 15px 30px;
+			}
+			
+			@media only screen and not ((hover: none) and (pointer: coarse)) {
+				#content {
+					padding-bottom: 50vh;
+				}
+			}
+
+			#content.goHide .hide {
+				display: none;
+			}
+
+			.d-flex-end {
+				display: flex;
+				align-items: end;
+			}
+
+			#paragraphs > div {
+				margin-top: 20px;
+				margin-bottom: 2px;
+			}
+
+			#currentLine {
+				margin-right: 6px;
+			}
+
+			#currentLine:empty {
+				display: none;
+			}
+
+			#proposedText {
+				font-size: 0.90em;
+				width: 100px;
+			}
+			
+			#proposedText-tooltip {
+				position: relative;
+				margin-bottom: -2px;
+			}
+
+			#proposedText-tooltip.showHint::after {
+				display: block;
+				position: absolute;
+				bottom: 110%;
+				z-index: 1;
+				padding: 2px 7px;
+				border-radius: 5px;
+				background-color: darkgrey;
+				color: black;
+				font-size: 0.85em;
+				content: attr(hint);
+			}
+
+			#buttons {
+				margin: 10px -5px;
+				text-align: center;
+			}
+
+			#buttons > button {
+				margin: 5px;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id="content">
+			<div>
+				<div id="paragraphs">
+					<div></div>
+				</div>
+				<div class="d-flex-end hide">
+					<div id="currentLine"></div>
+					<div id="proposedText-tooltip" hint="">
+						<input id="proposedText" type="text" autofocus>
+					</div>
+				</div>
+				<div id="buttons">
+					<button onclick="showHint()" title="Click to show an extra letter as hint (or type two spaces)" class="hide">💡</button>
+					<button onclick="surrender()" title='Click to add the next word (or type "??")' class="hide">👅</button>
+					<button onclick="goToPreviousParagraph()" title='Click to go to the previous paragraph (or type "<==")'>⏫</button>
+					<button onclick="goToNextParagraph()" title='Click to go to the next paragraph (or type "==>")'>⏬</button>
+				</div>
+			</div>
+		</div>
+
+		<script type="text/javascript">
+			// Initialization of variables
+			var guessingText = `
+Bonsoir monsieur, madame, aujourd'hui, j'te dis tout
+J'préfère t'parler en "tu" car je n'aime pas le "vous"
+J'trouve que ça vieillit mais moi, j'veux rester p'tit
+Un gamin pour la vie sans mouchoirs, ni cris
+
+Alors, vas-y, j'te dis tout, sur le drame que j'vis
+Au quotidien, en enfer, voilà où j'suis
+J'voudrais m'en aller, m'évader loin de tout
+De ce monde de fous et partir je-ne-sais-où
+
+Ce monde m'étrangle, m'écrase et me brûle
+Me détruit, m'empêche de vivre dans ma bulle
+Alors, j'voudrais partir, loin de tout, juste m'enfuir
+Laisse-moi courir loin, laissant c'monde à bannir
+
+Si Dieu dit que l'suicide est un péché alors
+Qu'il dise comment je pars, sans lui faire de tort
+Qu'il me transforme en c'que les médecins appellent "fou"
+Et peut-être qu'ainsi j'y verrai dans le flou
+
+Alors, cher Monsieur D
+Aide-moi, aime-moi
+Moi, j'n'y arrive pas
+Dans ce monde que je vois
+Dans ce monde de lutte
+Où l'Homme n'est qu'une brute
+Où l'Amour n'est plus rien
+Que querelles et disputes
+
+J'voudrais m'écrire un monde, une planète rien qu'à moi
+Une planète sur laquelle je me sentirais moi
+Un renouveau, sans chaînes
+Dépourvu de haine
+Une planète sur laquelle
+Tu me donnerais des ailes
+
+Un nouvel univers où les larmes, les peines
+Ne seraient qu'un mythe, qu'une putain de légende urbaine
+Alors, laisse-moi partir
+Dis-moi comment m'enfuir
+Assez d'questions posées
+Laisse-moi j'veux tout quitter
+
+La seule chose que j'aime en ta création l'homme
+C'est qu'il peut rêver chaque nuit, comme les mômes
+Qu'on soit vieux, jeune, vilain, gentil, ou encore moche
+On a le droit d'rêver, sans même rien dans les poches
+
+Mendiant, j'implore le soir
+Je mendie de l'espoir
+Mais la nuit est radine
+Madame, garde sa morphine
+Parce que j'ai pas payé
+Ou du moins, pas assez
+Né d'parents sans fortune
+Elle me refuse la lune
+
+Puisque certes, dans ce monde
+On n'peut vivre sans ces nombres
+Que tes enfants ont transformé en méchants monstres
+Chaque mois tu en gagnes
+Chaque jour tu en perds
+L'addition est sévère
+J'rends la note, j'quitte l'enfer
+
+C'est vrai, j'm'avoue p't-être vaincu, j'l'avoue, j'l'assume
+La vie m'bouffe avec un sale goût d'amertume
+Alors, entends-moi hurler, gerber toutes mes tripes
+Dans ce son qui conte la vie d'un con pessimiste
+
+J'me sens seul, putain
+Personne me tient la main
+Personne avec qui partager cette gloire, putain
+J'marche seul sur un chemin
+Qui semble sans lendemain
+J'accélère mais personne ne m'attend à la fin
+
+Alors, chaque soir, je bois, je me tronche la gueule
+Pour oublier, qu'au fond, le succès, ça rend seul
+Peu d'amis, peu de vie, j'suis enfermé sous vide
+Plein d'ennemis, plus d'sortie, Dieu, j'ai b'soin d'un guide
+
+Certains bouffons diront que j'abuse, j'exagère
+Mais j'les emmerde ces cons car j'suis jeune et j'galère
+Dans ma tête, c'est le bordel, qui a éteint la lumière ?
+Maman, j'n'y vois plus clair, j'ai besoin qu'on m'éclaire
+
+D'abord, c'est le bonheur quand tu donnes à ton coeur
+À bouffer un amour qui calme tes douleurs
+Tu oublies ton malheur mais, au fond, c'n'est qu'un leurre
+Dans cette génération d'cons, remplie de menteurs
+
+Une fois le coeur brisé, pas besoin d'l'appeler
+La solitude débarque, elle vient vite te trouver
+Elle n'attend pas qu'tu ouvres, nan ! Elle entre sans frapper
+Tes coups d'blues sont pour elle un quatre-heures à bouffer
+
+Alors toi, qui es-tu ? Au fond, le sais-tu ?
+Car moi je n'sais plus qui je suis, j'suis perdu
+Mon ambition est grande, dure à satisfaire
+Mon bonheur a le goût d'une saveur amère
+
+Alors, monsieur, madame
+J'l'avoue, j'suis malheureux
+Et pourtant je vis de mon rêve de morveux
+Mais c'est plus fort que moi
+Il me manque encore ça
+Ça et ça là-bas
+Toujours plus, j'suis comme ça !
+
+Alors, j'espère qu'un jour, je pourrai faire l'amour
+À une personne sincère qui n'me jouera pas d'tour
+J'en ai vraiment assez de donner sans retour
+J'suis saoulé d'm'aimer, moi, sans l'âme-soeur, c'est lourd
+
+Mais, sachez tout de même, que sur scène, grâce à vous
+J'ai l'impression d'être loin de ce monde de fous
+Car j'écris quand j'me plante
+Et je ris quand je danse
+Et je vis quand je chante
+Et pour tout ça, j'te dis :
+Merci
+
+Oh oh...`;
+			var lGuessingText =  guessingText.split("\n");
+			var iLine = 1;
+			var iMot = 0;
+			var iLetterHint = 0;
+
+			var line = lGuessingText[iLine].split(" ");
+			var elemProposedText = document.getElementById("proposedText");
+			var divParagraphs = document.getElementById("paragraphs");
+
+			// Reset the input at opening
+			elemProposedText.value = "";
+
+			// Catch "keyup" event in the input
+			elemProposedText.addEventListener("keyup", function(e) {
+
+				// Reset the color if the input is empty
+				if (this.value == "") {
+					this.style.color = "";
+
+				// Display an extra letter as hint if the entry is a double space
+				} else if (this.value == "  ") {
+					showHint();
+					this.value = "";
+					this.style.color = "";
+
+				// Add the next word if the entry is '??'
+				} else if (this.value == "??") {
+					surrender();
+
+				// Go to the previous paragraphe if the entry is '<=='
+				} else if (this.value == "<==") {
+					goToPreviousParagraph();
+
+				// Go to the next paragraphe if the entry is '==>'
+				} else if (this.value == "==>") {
+					goToNextParagraph();
+
+				// Analyze the entered text when the space key is pressed
+				} else if (e.keyCode == 32) {
+
+					iSpace = this.value.indexOf(" ");
+
+					// If the entered word is the expected one and this is not the last word
+					if (iMot < line.length-1 && this.value.substr(0, iSpace).toLowerCase() == line[iMot].toLowerCase()) {
+						addNextWord( this.value.substr(iSpace+1) );
+					// In case of error, change the color to red
+					} else {
+						this.style.color = "red";
+					}
+
+				// Catch the "Enter" event in the input
+				} else if (e.keyCode == 13) {
+					// When the whole line has been found
+					if (iMot == line.length-1 && this.value.toLowerCase() == line[iMot].toLowerCase()) {
+						goToNextLine();
+					// In case of error, change the color to red
+					} else {
+						this.style.color = "red";
+					}
+				}
+			});
+
+			// Display an extra letter as hint
+			function showHint() {
+				document.getElementById("proposedText-tooltip").setAttribute("hint", line[iMot].substr(0, iLetterHint+1));
+				document.getElementById("proposedText-tooltip").classList.add("showHint");
+				iLetterHint++;
+			}
+
+			// Automatically add the next word
+			function surrender() {
+				if (iMot < line.length-1) {
+					addNextWord();
+				} else {
+					goToNextLine();
+				}
+			}
+
+			// Add the next word to the current line
+			function addNextWord(newText = "") {
+				// Add the word to currentLine
+				document.getElementById("currentLine").innerText += " " + line[iMot];
+
+				// Empty proposedText and reset its color
+				elemProposedText.style.color = "";
+				elemProposedText.value = newText;
+
+				// Go to the next word
+				iMot++;
+				iLetterHint = 0;
+				document.getElementById("proposedText-tooltip").classList.remove("showHint");
+			}
+
+			// Finish the current line and go to the next one
+			function goToNextLine() {
+				// Add the completed line and empty the input
+				var newLine = document.createElement("div");
+				newLine.innerText = document.getElementById("currentLine").innerText + " " + line[iMot];
+				document.getElementById("currentLine").innerText = "";
+				divParagraphs.lastElementChild.appendChild(newLine);
+
+				// Empty proposedText and reset its color
+				elemProposedText.style.color = "";
+				elemProposedText.value = "";
+
+				// Go to the next line
+				iLine++;
+				iMot = 0;
+				iLetterHint = 0;
+				document.getElementById("proposedText-tooltip").classList.remove("showHint");
+
+				// New paragraph
+				if (iLine < lGuessingText.length) {
+					if (lGuessingText[iLine] == "") {
+						iLine++;
+						divParagraphs.append( document.createElement("div") );
+					}
+					line = lGuessingText[iLine].split(" ");
+				} else {
+					document.getElementById("content").classList.add("goHide");
+				}
+
+				// Automatically sroll to the bottom of the page
+				window.scrollTo(0,document.body.scrollHeight);
+			}
+
+			// Complete the current paragraph and go to next one
+			function goToNextParagraph() {
+				// Reset the currentLine, the proposedText and the associated variables
+				document.getElementById("currentLine").innerText = "";
+				elemProposedText.style.color = "";
+				elemProposedText.value = "";
+				iMot = 0;
+				iLetterHint = 0;
+				document.getElementById("proposedText-tooltip").classList.remove("showHint");
+
+				// Add the missing lines for the current paragraph
+				while (lGuessingText[iLine] != "" && iLine < lGuessingText.length) {
+					var newLine = document.createElement("div");
+					newLine.innerText = lGuessingText[iLine];
+					divParagraphs.lastElementChild.appendChild(newLine);
+					iLine++;
+				}
+
+				// Initialize the new paragraph
+				if (iLine < lGuessingText.length) {
+					iLine++;
+					line = lGuessingText[iLine].split(" ");
+					divParagraphs.append( document.createElement("div") );
+				} else {
+					document.getElementById("content").classList.add("goHide");
+				}
+
+				// Automatically sroll to the bottom of the page
+				window.scrollTo(0,document.body.scrollHeight);
+			}
+
+			// Reset the current paragraph or return to the previous one
+			function goToPreviousParagraph() {				
+				document.getElementById("content").classList.remove("goHide");
+
+				// If the current paragraph is empty, reset it before doing the previous one too
+				if (document.getElementById("currentLine").innerText == ""
+				 && divParagraphs.lastElementChild.childElementCount == 0
+				 && iLine > 1) {
+					divParagraphs.lastElementChild.remove();
+					iLine -= 1;
+				}
+
+				// Reset the currentLine, the proposedText and the associated variables
+				document.getElementById("currentLine").innerText = "";
+				elemProposedText.style.color = "";
+				elemProposedText.value = "";
+				iMot = 0;
+				iLetterHint = 0;
+				document.getElementById("proposedText-tooltip").classList.remove("showHint");
+
+				// Reset the last paragraph
+				if (iLine > 1) {
+					iLine -= divParagraphs.lastElementChild.childElementCount;
+					divParagraphs.lastElementChild.innerHTML = "";
+				}
+
+				// Update the next line to guess
+				line = lGuessingText[iLine].split(" ");
+			}
+		</script>
+	</body>
+</html>
